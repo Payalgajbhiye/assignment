@@ -1,0 +1,256 @@
+Batch: 17-19 Jan
+Payal Gajbhiye
+Emp Id: 2109932
+
+Ans Spark Core – RDD
+ans 1:
+import findspark
+findspark.init()
+
+from pyspark import SparkContext, SparkConf
+import os
+import shutil 
+
+data_path = "C:\\PySpark\\data"
+config = SparkConf().setAll([('spark.executor.memory', '4g'), ('spark.executor.cores', '2'), ('spark.cores.max', '2'), ('spark.driver.memory','4g')])  \
+                    .setAppName('errorlog')
+sc = SparkContext(conf=config)
+sc = SparkContext("local", "errorlog")
+
+lines = sc.textFile("/mnt/paco/intro/error_log.txt") \
+ .map(lambda x: x.split("\t"))
+ 
+# transformed RDDs
+errors = lines.filter(lambda x: x[0] == "ERROR")
+messages = errors.map(lambda x: x[1])
+ #
+# persistence
+messages.cache()
+ #
+# action 1
+messages.filter(lambda x: x.find("mysql") > -1).count()
+
+
+output_path = os.path.join(data_path, "ereorlog_out")
+
+# delete the output directory if exists..
+if (os.path.isdir(output_path)):
+    shutil.rmtree(output_path)
+
+errorlog.saveAsTextFile(output_path)
+sc.stop()
+
+2ans:
+import findspark
+findspark.init()
+
+from pyspark import SparkContext, SparkConf
+import os
+import shutil 
+
+data_path = "C:\\PySpark\\data"
+
+config = SparkConf().setAll([('spark.executor.memory', '4g'), ('spark.executor.cores', '2'), ('spark.cores.max', '2'), ('spark.driver.memory','4g')])  \
+                    .setAppName('Wordcount')
+
+sc = SparkContext(conf=config)
+
+sc = SparkContext("local", "wordcount")
+       
+text_file = sc.textFile(os.path.join(data_path, "wordcount.txt") )
+        
+wordcount = text_file.flatMap(lambda line: line.split(" "))  \
+                .map(lambda word: (word, 1)) \
+                .reduceByKey(lambda a, b: a + b)
+
+out2 = sorted(wordcount.countByValue().items())
+
+output_path = os.path.join(data_path, "wordcount_out")
+
+# delete the output directory if exists..
+if (os.path.isdir(output_path)):
+    shutil.rmtree(output_path)
+
+wordcount.saveAsTextFile(output_path)
+sc.stop()
+
+3: Ans:
+
+def read_tsv(file_path : str , header : str= "false") -> pyspark.sql.dataframe.DataFrame:
+    df = spark.read.format("csv") \
+    .option("inferSchema", "true") \
+    .option("header", header) \
+    .option("sep", "\t") \
+    .load(file_path)
+    return df
+
+"""Type Of Error For Each Course"""
+
+df = read_tsv("/content/server_log")
+
+df.show()
+
+df2 = df.withColumnRenamed("_c0","Message") \
+    .withColumnRenamed("_c1","Course") \
+    .withColumnRenamed("_c2","date")
+
+df2.show()
+
+df2.dtypes
+
+df2.groupBy("Message","Course").count().collect()
+
+df2.groupBy("Message","Course").count().show()
+
+
+Spark Sql_rdds
+
+
+
+1 ans :
+
+public void run(String sLogLevel, List<String> metrics) {
+    // Build spark session
+    SparkSession spark = SparkSession
+            .builder()
+            .appName(SPARK_APP_NAME)
+            .getOrCreate();
+
+    spark.sparkContext().setLogLevel(sLogLevel);
+
+    // Read initial datasets as non-streaming DataFrames
+    Dataset<Row> moviesDataset = readCsvIntoDataframe(
+            spark, MOVIES_CSV_FILE, SchemaLoader.getMovieSchema()
+    );
+
+    Dataset<Row> ratingsDataset = readCsvIntoDataframe(
+            spark, RATINGS_CSV_FILE, SchemaLoader.getRatingSchema()
+    );
+spark.catalog.listTables()
+
+spark.catalog.listTables()
+
+moviesDF = spark.sql("SELECT * FROM movies")
+ratingsDF = spark.sql("SELECT * FROM ratings")
+
+moviesDF.show()
+ratingsDF.show()
+
+summaryDf = ratingsDF \
+            .groupBy("movieId") \
+            .agg(count("rating").alias("ratingCount"), avg("rating").alias("ratingAvg")) \
+            .filter("ratingCount > =10") \
+            .orderBy(desc("ratingAvg")) \
+            .limit(20)
+
+summaryDf.show()
+
+joinStr = summaryDf["movieId"] == moviesDF["movieId"]
+
+summaryDf2 = summaryDf.join(moviesDF, joinStr) \
+                .drop(summaryDf["movieId"]) \
+                .select("movieId", "title", "ratingCount", "ratingAvg") \
+                .orderBy(desc("ratingAvg")) \
+                .coalesce(1)
+
+summaryDf2.show()
+
+summaryDf2.write.mode("overwrite").format("hive").saveAsTable("topRatedMovies")
+
+summaryDf2.printSchema()
+
+spark.catalog.listTables()
+
+topRatedMovies = spark.sql("SELECT * FROM topRatedMovies")
+topRatedMovies.show() 
+
+topRatedMovies.coalesce(1).write.option("header", "true")\
+.csv("csv_file_wit_headers.csv")
+
+spark.stop()
+
+2 ans
+import findspark
+findspark.init()
+
+from os.path import abspath
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import desc, avg, count
+
+warehouse_location = abspath('spark-warehouse')
+
+spark = SparkSession \
+    .builder \
+    .appName("Datasorces") \
+    .config("spark.master", "local") \
+    .config("spark.sql.warehouse.dir", warehouse_location) \
+    .enableHiveSupport() \
+    .getOrCreate()
+
+spark.catalog.listTables()    
+
+spark.sql("show databases").show()
+
+spark.sql("drop database if exists sparkdemo cascade")
+spark.sql("create database if not exists sparkdemo")
+
+spark.sql("use sparkdemo")
+
+spark.catalog.listTables()
+
+spark.sql("DROP TABLE IF EXISTS movies")
+spark.sql("DROP TABLE IF EXISTS ratings")
+spark.sql("DROP TABLE IF EXISTS topRatedMovies")
+
+loadMovies = """LOAD DATA LOCAL INPATH 'E:/PySpark/data/movielens/moviesNoHeader.csv' 
+         OVERWRITE INTO TABLE movies"""
+
+loadRatings = """LOAD DATA LOCAL INPATH 'E:/PySpark/data/movielens/ratingsNoHeader.csv' 
+         OVERWRITE INTO TABLE ratings"""
+
+spark.sql(createMovies)
+spark.sql(loadMovies)
+spark.sql(createRatings)
+spark.sql(loadRatings)
+
+spark.catalog.listTables()
+
+moviesDF = spark.sql("SELECT * FROM movies")
+ratingsDF = spark.sql("SELECT * FROM ratings")
+
+moviesDF.show()
+ratingsDF.show()
+
+summaryDf = ratingsDF \
+            .groupBy("movieId") \
+            .agg(count("rating").alias("ratingCount"), avg("rating").alias("ratingAvg")) \
+            .filter("ratingCount > =10") \
+            .orderBy(desc("ratingAvg")) \
+            .limit(20)
+
+summaryDf.show()
+
+joinStr = summaryDf["movieId"] == moviesDF["movieId"]
+
+summaryDf2 = summaryDf.join(moviesDF, joinStr) \
+                .drop(summaryDf["movieId"]) \
+                .select("movieId", "title", "ratingCount", "ratingAvg") \
+                .orderBy(desc("ratingAvg")) \
+                .coalesce(1)
+
+summaryDf2.show()
+
+summaryDf2.write.mode("overwrite").format("hive").saveAsTable("topRatedMovies")
+
+summaryDf2.printSchema()
+
+spark.catalog.listTables()
+
+topRatedMovies = spark.sql("SELECT * FROM topRatedMovies")
+topRatedMovies.show() 
+
+spark.catalog.listFunctions()  
+topRatedMovies.coalesce(1).write.option("header", "flase")\
+.csv("csv_file_without_headers.csv")
+
+spark.stop()
